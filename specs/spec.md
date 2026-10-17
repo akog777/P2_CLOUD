@@ -32,7 +32,7 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 
 ## 3. Como os Requisitos se Aplicam ao Domínio
 
-### 3.1 Requisitos funcionais mínimos do enunciado
+### 3.1 Requisitos funcionais
 
 | ID | Requisito do enunciado | Aplicação no VetCare | Histórias |
 | :--- | :--- | :--- | :--- |
@@ -41,11 +41,6 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 | **RF-03** | Evento S3 → Lambda → RDS | Cada nova foto dispara uma Lambda que gera a **miniatura** da imagem e grava o endereço dela no cadastro do pet | US-05 |
 | **RF-04** | Relatório via API Gateway + Lambda com JOIN/GROUP BY | **Consultas realizadas por veterinário e espécie** em um período | US-08 |
 | **RF-05** | Front-end web publicado consumindo a API | Interface web com as telas de tutores, pets, consultas e relatório | US-09 |
-
-### 3.2 Requisitos funcionais específicos do domínio
-
-| ID | Requisito | Aplicação no VetCare | Histórias |
-| :--- | :--- | :--- | :--- |
 | **RF-06** | Consultas | Agendar, remarcar, cancelar e registrar o atendimento de consultas (pet + veterinário + data/hora + motivo + observações + status), sem conflito de horário. Cria uma relação **N:N entre pets e veterinários** por meio das consultas | US-06 |
 | **RF-07** | Histórico do pet | Listar todas as consultas de um pet, da mais recente para a mais antiga | US-07 |
 | **RF-08** | Busca e filtros | Buscar tutores por nome ou CPF e filtrar pets por espécie, tutor e situação | US-03 |
