@@ -73,4 +73,4 @@ A solução foi projetada utilizando uma **arquitetura Serverless** na AWS para 
 
 * **Curso:** Sistemas de Informação / Serviços em Nuvem
 * **Ambiente:** AWS Learner Lab
-* **Participantes:** Ana Beatriz Pereira de Oliveira - 10444937
+* **Participantes:** Ana Beatriz Pereira de Oliveira - 10444937 / Isaac Luiz Koga Carone - 10723323
