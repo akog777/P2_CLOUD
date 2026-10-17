@@ -46,7 +46,7 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 | **RF-08** | Busca e filtros | Buscar tutores por nome ou CPF e filtrar pets por espécie, tutor e situação | US-03 |
 | **RF-09** | Inativação de pet | Marcar um pet como inativo (óbito ou transferência) sem apagar seus dados e seu histórico, com possibilidade de reativação | US-02 |
 
-### 3.3 Requisitos não funcionais
+### 3.2 Requisitos não funcionais
 
 | ID | Requisito | Aplicação no VetCare | Histórias |
 | :--- | :--- | :--- | :--- |
@@ -61,7 +61,10 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 
 ## 4. Histórias de Usuário e Critérios de Aceite
 
-Os critérios seguem o formato **Dado / Quando / Então**, para que cada um possa ser testado diretamente na API ou na interface. Toda mensagem de erro é exibida ao usuário em linguagem clara.
+**Regras gerais (valem para todas as histórias):**
+* Antes de qualquer exclusão, o sistema pede confirmação.
+* Quando há erro, nada é salvo e a tela mostra uma mensagem clara indicando o problema.
+* Ao abrir, editar ou excluir um registro que não existe, o sistema informa que ele não foi encontrado.
 
 ### US-01: Gerenciar tutores
 **Requisitos:** RF-01, RNF-06
@@ -71,17 +74,11 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** manter a base de clientes da clínica correta e sem duplicidade.
 
 **Critérios de aceite:**
-1. **Dado** um nome com 3 a 100 caracteres, um CPF válido e um telefone com 10 ou 11 dígitos, **quando** salvo o tutor, **então** ele é gravado no banco e a API retorna **201** com o registro criado.
-2. **Dado** um nome vazio, um telefone fora do formato ou um CPF inválido (dígitos verificadores incorretos), **quando** tento salvar, **então** a API retorna **400** informando qual campo está incorreto e nada é gravado.
-3. **Dado** um e-mail informado com formato inválido, **quando** tento salvar, **então** a API retorna **400**. O e-mail é opcional.
-4. **Dado** um CPF que já pertence a outro tutor, **quando** tento cadastrar **ou editar**, **então** a API retorna **409** com a mensagem "CPF já cadastrado".
-5. **Dado** o mesmo CPF digitado com e sem pontuação (`123.456.789-09` e `12345678909`), **quando** comparo, **então** o sistema trata os dois como o mesmo CPF.
-6. **Dado** um tutor existente, **quando** edito seus dados, **então** as alterações ficam gravadas e aparecem na próxima consulta.
-7. **Dado** a listagem de tutores, **quando** ela é exibida, **então** os tutores aparecem em ordem alfabética e o CPF é mostrado **mascarado** (`***.456.789-**`), por se tratar de dado pessoal. O CPF completo aparece somente na tela de detalhe/edição.
-8. **Dado** o botão de excluir, **quando** clico nele, **então** o sistema pede confirmação antes de excluir.
-9. **Dado** um tutor **com pets cadastrados** (ativos ou inativos), **quando** tento excluí-lo, **então** a API retorna **409** com a mensagem "Tutor possui pets cadastrados" e nada é removido.
-10. **Dado** um tutor **sem pets**, **quando** confirmo a exclusão, **então** ele é removido e a API retorna **204**.
-11. **Dado** um ID de tutor inexistente, **quando** consulto, edito ou excluo, **então** a API retorna **404**.
+1. O cadastro exige nome (3 a 100 caracteres), CPF válido e telefone com 10 ou 11 dígitos. O e-mail é opcional, mas, se informado, precisa ser válido. A mensagem de erro indica qual campo está incorreto.
+2. O CPF não pode se repetir, no cadastro ou na edição, mesmo digitado com ou sem pontuação (mensagem: "CPF já cadastrado").
+3. As alterações feitas na edição ficam gravadas.
+4. A listagem aparece em ordem alfabética, com o CPF mascarado (`***.456.789-**`); o CPF completo aparece apenas na tela de detalhe.
+5. Um tutor com pets cadastrados (ativos ou inativos) não pode ser excluído (mensagem: "Tutor possui pets cadastrados"). Sem pets, ele é excluído.
 
 ### US-02: Gerenciar pets
 **Requisitos:** RF-01, RF-09
@@ -91,20 +88,12 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** manter organizado o cadastro de pacientes de cada cliente.
 
 **Critérios de aceite:**
-1. **Dado** um tutor existente, **quando** cadastro um pet com nome, espécie (Cão, Gato, Ave, Roedor, Réptil ou Outro) e veterinário responsável, **então** o pet é gravado vinculado a esse tutor e a API retorna **201**.
-2. **Dado** um tutor ou veterinário inexistente, **quando** tento salvar o pet, **então** a API retorna **400** informando qual vínculo é inválido.
-3. **Dado** uma data de nascimento futura ou um peso menor ou igual a zero, **quando** tento salvar, **então** a API retorna **400**. Raça, data de nascimento e peso são opcionais.
-4. **Dado** o formulário de pet, **quando** ele é aberto, **então** a lista de veterinários é carregada do sistema, não de valores fixos na tela.
-5. **Dado** um pet existente, **quando** edito seus dados (inclusive trocando o veterinário responsável), **então** as alterações ficam gravadas.
-6. **Dado** um tutor, **quando** consulto seus pets, **então** vejo todos os pets dele, com os inativos identificados por um selo "Inativo".
-7. **Dado** a listagem geral de pets, **quando** nenhum filtro é aplicado, **então** apenas os pets ativos são exibidos.
-8. **Dado** um pet ativo, **quando** o marco como inativo, **então** ele continua cadastrado como inativo e seu histórico de consultas é mantido.
-9. **Dado** um pet com consultas **agendadas no futuro**, **quando** o inativo, **então** essas consultas são **canceladas automaticamente** e o sistema informa quantas foram canceladas.
-10. **Dado** um pet inativo, **quando** o reativo, **então** ele volta a aparecer na listagem geral e pode ter novas consultas agendadas.
-11. **Dado** o botão de excluir, **quando** clico nele, **então** o sistema pede confirmação antes de excluir.
-12. **Dado** um pet **sem consultas**, **quando** confirmo a exclusão, **então** ele é removido e a API retorna **204**.
-13. **Dado** um pet **com consultas**, **quando** tento excluí-lo, **então** a API retorna **409** com a mensagem "Pet possui consultas; utilize a inativação".
-14. **Dado** um ID de pet inexistente, **quando** consulto, edito ou excluo, **então** a API retorna **404**.
+1. O cadastro exige um tutor existente, nome, espécie (Cão, Gato, Ave, Roedor, Réptil ou Outro) e veterinário responsável, escolhido em uma lista carregada do sistema. Raça, data de nascimento e peso são opcionais.
+2. Não são aceitos data de nascimento futura nem peso menor ou igual a zero.
+3. Na edição, é possível alterar todos os dados, inclusive o veterinário responsável.
+4. Na tela do tutor aparecem todos os seus pets, com os inativos identificados pelo selo "Inativo". A listagem geral, sem filtros, mostra apenas os pets ativos.
+5. Ao inativar um pet, seus dados e seu histórico são mantidos, e as consultas futuras dele são canceladas automaticamente, informando quantas foram canceladas. Um pet inativo pode ser reativado.
+6. Um pet com consultas não pode ser excluído (mensagem: "Pet possui consultas; utilize a inativação"). Sem consultas, ele é excluído.
 
 ### US-03: Buscar tutores e pets
 **Requisito:** RF-08
@@ -114,12 +103,10 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** atender o cliente no balcão sem procurar em listas longas.
 
 **Critérios de aceite:**
-1. **Dado** um trecho do nome (ex.: "silv"), **quando** busco tutores, **então** recebo os tutores cujo nome contém o trecho, sem diferenciar maiúsculas, minúsculas e acentos.
-2. **Dado** um CPF completo, com ou sem pontuação, **quando** busco, **então** recebo o tutor correspondente.
-3. **Dado** uma busca sem resultados, **quando** ela é feita, **então** a tela mostra "Nenhum tutor encontrado".
-4. **Dado** um campo de busca vazio, **quando** busco, **então** recebo a listagem normal.
-5. **Dado** filtros de espécie, tutor e/ou situação (ativo/inativo), **quando** listo pets, **então** recebo apenas os pets que atendem a todos os filtros informados.
-6. **Dado** mais de 20 resultados, **quando** listo tutores ou pets, **então** recebo os resultados em páginas de 20 itens, com o total de registros e a navegação entre páginas.
+1. A busca de tutores aceita um trecho do nome, sem diferenciar maiúsculas, minúsculas e acentos ("jose" encontra "José"), ou o CPF, com ou sem pontuação.
+2. Com o campo de busca vazio, aparece a listagem normal; sem resultados, aparece "Nenhum tutor encontrado".
+3. Os pets podem ser filtrados por espécie, tutor e situação (ativo/inativo), e os filtros podem ser combinados.
+4. As listagens de tutores e pets são exibidas em páginas de 20 itens, com o total de registros.
 
 ### US-04: Enviar a foto do pet
 **Requisito:** RF-02
@@ -129,12 +116,9 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** que a equipe reconheça o animal facilmente durante o atendimento.
 
 **Critérios de aceite:**
-1. **Dado** um pet existente e um arquivo JPG ou PNG de até 5 MB, **quando** solicito o envio, **então** o backend retorna uma **URL pré-assinada válida por 5 minutos**.
-2. **Dado** a URL pré-assinada, **quando** a foto é enviada, **então** o arquivo vai **direto do navegador para o S3**, sem passar pelo backend.
-3. **Dado** um arquivo com outro formato ou com mais de 5 MB, **quando** tento enviar, **então** a tela bloqueia o envio com uma mensagem, e o backend recusa gerar a URL para formatos não permitidos (**400**).
-4. **Dado** uma URL expirada, **quando** o envio é tentado, **então** o envio é recusado e a tela orienta o usuário a tentar novamente.
-5. **Dado** um pet que já tinha foto, **quando** envio uma nova, **então** a nova foto passa a ser a foto do pet.
-6. **Dado** um pet sem foto, **quando** ele é exibido, **então** aparece uma imagem padrão.
+1. São aceitos apenas arquivos JPG ou PNG de até 5 MB; outros arquivos são bloqueados com uma mensagem.
+2. A foto vai direto do navegador para o S3, usando uma URL pré-assinada gerada pelo backend e válida por 5 minutos. Se a URL expirar, a tela orienta o usuário a tentar novamente.
+3. Uma nova foto substitui a anterior. Um pet sem foto aparece com uma imagem padrão.
 
 ### US-05: Gerar a miniatura da foto automaticamente
 **Requisito:** RF-03
@@ -144,13 +128,11 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** que as telas carreguem rápido mesmo com muitos pacientes.
 
 **Critérios de aceite:**
-1. **Dado** uma nova foto enviada para o S3, **quando** o arquivo é criado, **então** uma Lambda é disparada automaticamente.
-2. **Dado** o processamento, **quando** a Lambda termina, **então** a miniatura (150x150 px, mantendo a proporção) é salva no S3 e os endereços da foto e da miniatura são gravados no cadastro do pet.
-3. **Dado** a miniatura recém-salva no S3, **quando** ela é criada, **então** ela **não** dispara um novo processamento, evitando execuções em loop.
-4. **Dado** que a foto acabou de ser enviada e a miniatura ainda não está pronta, **quando** o pet é exibido, **então** aparece o indicador "processando".
-5. **Dado** um arquivo corrompido, **quando** a Lambda o processa, **então** o erro é registrado no log, a foto anterior do pet é mantida e o pet passa a exibir a indicação "erro no processamento da foto".
-6. **Dado** um arquivo que não pertence a um pet existente, **quando** a Lambda o processa, **então** o erro é registrado no log e nenhum cadastro é alterado.
-7. **Dado** qualquer processamento, **quando** ele ocorre, **então** o log do CloudWatch registra o início, o fim e o resultado.
+1. Cada nova foto dispara automaticamente uma Lambda, que gera a miniatura (150x150 px, mantendo a proporção) e grava a foto e a miniatura no cadastro do pet.
+2. A miniatura gerada não dispara um novo processamento, evitando execuções em loop.
+3. Enquanto a miniatura não fica pronta, o pet exibe o indicador "processando".
+4. Se o arquivo estiver corrompido, a foto anterior é mantida e o pet exibe "erro no processamento da foto". Se o arquivo não pertencer a um pet existente, nenhum cadastro é alterado.
+5. Todo processamento fica registrado no log do CloudWatch, com início, fim e resultado.
 
 ### US-06: Agendar e registrar consultas
 **Requisito:** RF-06
@@ -162,18 +144,12 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 **Regras da agenda:** cada consulta dura **30 minutos**; a clínica atende de **segunda a sábado, das 8h às 18h**; a consulta pode ser feita com um veterinário diferente do responsável pelo pet (plantão ou especialista).
 
 **Critérios de aceite:**
-1. **Dado** um pet ativo, um veterinário, uma data/hora futura dentro do horário de funcionamento e um motivo, **quando** agendo, **então** a consulta é criada com status `agendada` e a API retorna **201**.
-2. **Dado** que o veterinário já tem uma consulta não cancelada que se sobrepõe ao intervalo de 30 minutos, **quando** tento agendar, **então** a API retorna **409** com a mensagem "Veterinário já possui consulta neste horário".
-3. **Dado** que o **pet** já tem uma consulta não cancelada que se sobrepõe ao horário, mesmo com outro veterinário, **quando** tento agendar, **então** a API retorna **409** com a mensagem "Pet já possui consulta neste horário".
-4. **Dado** uma consulta das 10:00 às 10:30, **quando** agendo outra para o mesmo veterinário às 10:30, **então** o agendamento é aceito, pois os horários apenas se encostam.
-5. **Dado** uma data/hora passada, um horário fora do funcionamento da clínica ou um pet inativo, **quando** tento agendar, **então** a API retorna **400** informando o motivo.
-6. **Dado** dois agendamentos enviados ao mesmo tempo para o mesmo veterinário e horário, **quando** são processados, **então** apenas um é aceito e o outro recebe **409**.
-7. **Dado** uma consulta `agendada`, **quando** a remarco, **então** a nova data/hora é validada pelos critérios 2 a 5, **sem** considerar conflito com a própria consulta (ex.: mudar das 10:00 para as 10:15 é permitido se não houver outra consulta no intervalo).
-8. **Dado** uma consulta `agendada` cujo horário já chegou, **quando** a Dra. Camila registra o atendimento com observações, **então** o status passa para `realizada`.
-9. **Dado** uma consulta `agendada` cujo horário **ainda não chegou**, **quando** tento registrá-la como `realizada`, **então** a API retorna **400**.
-10. **Dado** uma consulta `agendada`, **quando** ela é cancelada, **então** o status passa para `cancelada` e o horário fica livre para outro agendamento.
-11. **Dado** uma consulta `realizada` ou `cancelada`, **quando** tento mudar seu status ou remarcá-la, **então** a API retorna **409**.
-12. **Dado** uma data e um veterinário, **quando** abro a agenda, **então** vejo as consultas daquele dia em ordem de horário.
+1. O agendamento exige um pet ativo, um veterinário, um motivo e uma data/hora futura dentro do horário de funcionamento. A consulta é criada com o status "agendada".
+2. Não pode haver consultas sobrepostas (desconsiderando as canceladas) nem para o mesmo veterinário ("Veterinário já possui consulta neste horário") nem para o mesmo pet ("Pet já possui consulta neste horário"). Horários que apenas se encostam, como 10:00–10:30 e 10:30, são permitidos.
+3. Se dois agendamentos para o mesmo horário forem enviados ao mesmo tempo, apenas um é aceito.
+4. Remarcar uma consulta segue as mesmas regras, sem considerar conflito com ela mesma.
+5. Uma consulta "agendada" pode virar "realizada" (somente depois do horário marcado, com as observações do atendimento) ou "cancelada" (o horário fica livre). Consultas realizadas ou canceladas não podem mais ser alteradas.
+6. A agenda mostra as consultas de um veterinário em um dia, em ordem de horário.
 
 ### US-07: Consultar o histórico do pet
 **Requisito:** RF-07
@@ -183,10 +159,9 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** conhecer o histórico do animal sem procurar em anotações antigas.
 
 **Critérios de aceite:**
-1. **Dado** um pet com consultas, **quando** abro o histórico, **então** vejo as consultas da mais recente para a mais antiga, com data, veterinário, motivo, status e observações.
-2. **Dado** o histórico aberto, **quando** filtro por status, **então** vejo apenas as consultas daquele status (ex.: somente realizadas).
-3. **Dado** um pet sem consultas, **quando** abro o histórico, **então** vejo a mensagem "Nenhuma consulta registrada".
-4. **Dado** um pet inativo, **quando** abro o histórico, **então** o histórico continua disponível.
+1. O histórico mostra as consultas da mais recente para a mais antiga, com data, veterinário, motivo, status e observações, e pode ser filtrado por status.
+2. Um pet sem consultas exibe "Nenhuma consulta registrada".
+3. O histórico continua disponível para pets inativos.
 
 ### US-08: Emitir o relatório de consultas por veterinário e espécie
 **Requisito:** RF-04
@@ -196,21 +171,15 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** acompanhar a distribuição da demanda e planejar a escala da equipe.
 
 **Critérios de aceite:**
-1. **Dado** um período (data inicial e final), **quando** solicito o relatório, **então** recebo, para cada veterinário e espécie, a quantidade de consultas com status `realizada` no período.
-2. **Dado** que nenhum período é informado, **quando** solicito, **então** o relatório considera os últimos 30 dias.
-3. **Dado** uma data inicial maior que a final, **quando** solicito, **então** a API retorna **400**.
-4. **Dado** um período sem consultas realizadas, **quando** solicito, **então** recebo um resultado vazio com status **200** e a tela mostra "Nenhuma consulta no período".
-5. **Dado** a implementação, **então** o relatório é exposto pelo API Gateway, executado por uma Lambda e usa uma consulta SQL com `JOIN` entre consultas, pets e veterinários e `GROUP BY` por veterinário e espécie.
-6. **Dado** a resposta, **então** ela segue o formato JSON:
-   ```json
-   {
-     "periodo": { "inicio": "2026-10-01", "fim": "2026-10-31" },
-     "resultado": [
-       { "veterinario": "Dra. Camila Rocha", "especie": "Cão",  "total_consultas": 12 },
-       { "veterinario": "Dra. Camila Rocha", "especie": "Gato", "total_consultas": 5 }
-     ]
-   }
-   ```
+1. O relatório mostra, para cada veterinário e espécie, a quantidade de consultas **realizadas** no período escolhido. Sem período informado, considera os últimos 30 dias. Exemplo:
+
+   | Veterinário | Espécie | Consultas realizadas |
+   | :--- | :--- | :--- |
+   | Dra. Camila Rocha | Cão | 12 |
+   | Dra. Camila Rocha | Gato | 5 |
+
+2. Uma data inicial maior que a final é recusada com mensagem de erro.
+3. Um período sem consultas realizadas exibe "Nenhuma consulta no período".
 
 ### US-09: Usar o sistema pelo navegador
 **Requisito:** RF-05
@@ -220,8 +189,6 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 * **Para** usar qualquer computador da recepção.
 
 **Critérios de aceite:**
-1. **Dado** o endereço público do site, **quando** o acesso, **então** vejo as telas de tutores, pets, consultas e relatório.
-2. **Dado** uma operação em andamento, **quando** aguardo a resposta, **então** a tela mostra um indicador de carregamento.
-3. **Dado** um erro retornado pela API, **quando** ele ocorre, **então** a tela mostra a mensagem de erro, e não uma tela em branco.
-4. **Dado** que a API está indisponível, **quando** tento usar o sistema, **então** a tela mostra "Não foi possível conectar ao servidor. Tente novamente."
-5. **Dado** uma nova sessão do Learner Lab, **quando** a equipe segue o `README.md`, **então** o site volta a funcionar sem alterar endereços dentro do código das telas.
+1. Pelo endereço público do site, é possível acessar as telas de tutores, pets, consultas e relatório.
+2. Durante as operações, a tela mostra um indicador de carregamento. Se o servidor estiver fora do ar, aparece "Não foi possível conectar ao servidor. Tente novamente."
+3. Numa nova sessão do Learner Lab, o site volta a funcionar seguindo o `README.md`, sem alterar endereços dentro do código das telas.
