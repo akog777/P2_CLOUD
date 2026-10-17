@@ -1,4 +1,4 @@
-# Especificação do Projeto: Sistema de Gestão para Clínica Veterinária (VetCare)
+# Especificação do Projeto — VetCare: Sistema de Gestão para Clínica Veterinária
 
 ---
 
@@ -32,7 +32,7 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 
 ## 3. Como os Requisitos se Aplicam ao Domínio
 
-### 3.1 Requisitos funcionais
+### 3.1 Requisitos funcionais mínimos do enunciado
 
 | ID | Requisito do enunciado | Aplicação no VetCare | Histórias |
 | :--- | :--- | :--- | :--- |
@@ -41,6 +41,11 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 | **RF-03** | Evento S3 → Lambda → RDS | Cada nova foto dispara uma Lambda que gera a **miniatura** da imagem e grava o endereço dela no cadastro do pet | US-05 |
 | **RF-04** | Relatório via API Gateway + Lambda com JOIN/GROUP BY | **Consultas realizadas por veterinário e espécie** em um período | US-08 |
 | **RF-05** | Front-end web publicado consumindo a API | Interface web com as telas de tutores, pets, consultas e relatório | US-09 |
+
+### 3.2 Requisitos funcionais específicos do domínio
+
+| ID | Requisito | Aplicação no VetCare | Histórias |
+| :--- | :--- | :--- | :--- |
 | **RF-06** | Consultas | Agendar, remarcar, cancelar e registrar o atendimento de consultas (pet + veterinário + data/hora + motivo + observações + status), sem conflito de horário. Cria uma relação **N:N entre pets e veterinários** por meio das consultas | US-06 |
 | **RF-07** | Histórico do pet | Listar todas as consultas de um pet, da mais recente para a mais antiga | US-07 |
 | **RF-08** | Busca e filtros | Buscar tutores por nome ou CPF e filtrar pets por espécie, tutor e situação | US-03 |
@@ -64,7 +69,7 @@ O VetCare é uma aplicação web, publicada na AWS, que centraliza tutores, pets
 Os critérios seguem o formato **Dado / Quando / Então**, para que cada um possa ser testado diretamente na API ou na interface. Toda mensagem de erro é exibida ao usuário em linguagem clara.
 
 ### US-01: Gerenciar tutores
-**Requisito:** RF-01
+**Requisitos:** RF-01, RNF-06
 
 * **Como** Lucas (recepcionista),
 * **Quero** cadastrar, consultar, editar e excluir tutores (nome, CPF, telefone e e-mail),
@@ -84,7 +89,7 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 11. **Dado** um ID de tutor inexistente, **quando** consulto, edito ou excluo, **então** a API retorna **404**.
 
 ### US-02: Gerenciar pets
-**Requisito:** RF-01
+**Requisitos:** RF-01, RF-09
 
 * **Como** Lucas (recepcionista),
 * **Quero** cadastrar, consultar, editar, inativar e excluir os pets de um tutor, escolhendo o veterinário responsável,
@@ -107,7 +112,7 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 14. **Dado** um ID de pet inexistente, **quando** consulto, edito ou excluo, **então** a API retorna **404**.
 
 ### US-03: Buscar tutores e pets
-**Requisito:** específico do domínio
+**Requisito:** RF-08
 
 * **Como** Lucas (recepcionista),
 * **Quero** encontrar um tutor pelo nome ou CPF e filtrar pets por espécie, tutor ou situação,
@@ -148,11 +153,12 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 2. **Dado** o processamento, **quando** a Lambda termina, **então** a miniatura (150x150 px, mantendo a proporção) é salva no S3 e os endereços da foto e da miniatura são gravados no cadastro do pet.
 3. **Dado** a miniatura recém-salva no S3, **quando** ela é criada, **então** ela **não** dispara um novo processamento, evitando execuções em loop.
 4. **Dado** que a foto acabou de ser enviada e a miniatura ainda não está pronta, **quando** o pet é exibido, **então** aparece o indicador "processando".
-5. **Dado** um arquivo corrompido ou que não pertence a um pet existente, **quando** a Lambda o processa, **então** o erro é registrado no log e nenhum cadastro é alterado.
-6. **Dado** qualquer processamento, **quando** ele ocorre, **então** o log do CloudWatch registra o início, o fim e o resultado.
+5. **Dado** um arquivo corrompido, **quando** a Lambda o processa, **então** o erro é registrado no log, a foto anterior do pet é mantida e o pet passa a exibir a indicação "erro no processamento da foto".
+6. **Dado** um arquivo que não pertence a um pet existente, **quando** a Lambda o processa, **então** o erro é registrado no log e nenhum cadastro é alterado.
+7. **Dado** qualquer processamento, **quando** ele ocorre, **então** o log do CloudWatch registra o início, o fim e o resultado.
 
 ### US-06: Agendar e registrar consultas
-**Requisito:** específico do domínio
+**Requisito:** RF-06
 
 * **Como** Lucas (recepcionista) e Dra. Camila (veterinária),
 * **Quero** agendar consultas para os pets e, depois do atendimento, registrar o resultado,
@@ -175,7 +181,7 @@ Os critérios seguem o formato **Dado / Quando / Então**, para que cada um poss
 12. **Dado** uma data e um veterinário, **quando** abro a agenda, **então** vejo as consultas daquele dia em ordem de horário.
 
 ### US-07: Consultar o histórico do pet
-**Requisito:** específico do domínio
+**Requisito:** RF-07
 
 * **Como** Dra. Camila (veterinária chefe),
 * **Quero** ver todas as consultas de um pet durante o atendimento,
