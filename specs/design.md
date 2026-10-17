@@ -344,6 +344,18 @@ GROUP BY v.nome, p.especie
 ORDER BY v.nome, total_consultas DESC;
 ```
 
+Formato da resposta:
+
+```json
+{
+  "periodo": { "inicio": "2026-10-01", "fim": "2026-10-31" },
+  "resultado": [
+    { "veterinario": "Dra. Camila Rocha", "especie": "Cão",  "total_consultas": 12 },
+    { "veterinario": "Dra. Camila Rocha", "especie": "Gato", "total_consultas": 5 }
+  ]
+}
+```
+
 ### 3.6 Padrões comuns
 
 * **Formato:** JSON em todas as requisições e respostas.
