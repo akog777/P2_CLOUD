@@ -95,10 +95,14 @@ sequenceDiagram
     A-->>F: url + campos + chave (expira em 5 min, máx. 5 MB)
     F->>S: POST da foto em uploads/pets/42/<uuid>.jpg
     S-)T: evento s3:ObjectCreated (filtro: prefixo uploads/)
-    T->>D: foto_chave = nova chave, foto_status = 'processando'
+    T->>D: foto_status = 'processando' (foto anterior continua valendo)
     T->>S: lê a original e grava thumbnails/pets/42/<uuid>.jpg
     Note over S,T: thumbnails/ não está no filtro do evento,<br/>então a miniatura não dispara a Lambda de novo
-    T->>D: foto_thumbnail_chave, foto_status = 'pronta'
+    alt miniatura gerada com sucesso
+        T->>D: foto_chave e foto_thumbnail_chave = novas chaves, foto_status = 'pronta'
+    else arquivo corrompido
+        T->>D: foto_status = 'erro' (chaves da foto anterior mantidas)
+    end
     F->>A: GET /pets/42
     A-->>F: dados do pet + URLs de leitura pré-assinadas (1 h)
 ```
@@ -110,7 +114,10 @@ sequenceDiagram
 | `uploads/pets/{pet_id}/{uuid}.{jpg\|png}` | Foto original enviada pelo navegador | **Sim** (filtro do evento) |
 | `thumbnails/pets/{pet_id}/{uuid}.jpg` | Miniatura 150x150 px gerada pela Lambda | Não |
 
-A Lambda extrai o `pet_id` do próprio caminho do arquivo. Se o pet não existir ou a imagem estiver corrompida, ela registra o erro no CloudWatch, marca `foto_status = 'erro'` quando o pet existe e não altera mais nada.
+A Lambda extrai o `pet_id` do próprio caminho do arquivo e só troca `foto_chave` e `foto_thumbnail_chave` **depois** que a miniatura foi gravada com sucesso. Comportamento em caso de falha:
+
+* **Imagem corrompida:** registra o erro no CloudWatch, marca `foto_status = 'erro'` e mantém as chaves da foto anterior.
+* **Pet inexistente no caminho:** registra o erro no CloudWatch e não altera nenhum registro.
 
 ---
 
@@ -182,6 +189,9 @@ Versionado em [`sql/01_schema.sql`](../sql/01_schema.sql). Os veterinários são
 ```sql
 -- Necessária para a restrição de horário sobreposto (EXCLUDE com '=' em colunas inteiras)
 CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- Necessária para a busca de tutores sem diferenciar acentos (ex.: "jose" encontra "José")
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- Datas e horas são gravadas no horário de Brasília (America/Sao_Paulo)
 
@@ -261,6 +271,7 @@ CREATE INDEX idx_consultas_vet_data  ON consultas (veterinario_id, data_hora);
 | Pet com consultas não pode ser excluído (US-02) | `ON DELETE RESTRICT` | Erro `23503` → **409** "Pet possui consultas; utilize a inativação" |
 | Inativar pet cancela consultas futuras (US-02) | — | `UPDATE` do pet e das consultas na **mesma transação** |
 | Sem consultas sobrepostas, inclusive simultâneas (US-06) | `EXCLUDE` com intervalo `[)` (10:30 não conflita com 10:00–10:30) | Erro `23P01` → **409** com a mensagem do conflito (veterinário ou pet) |
+| Busca de tutor sem diferenciar maiúsculas e acentos (US-03) | Extensão `unaccent` | `WHERE unaccent(nome) ILIKE unaccent('%' || termo || '%')` |
 | Remarcar sem conflitar consigo mesma (US-06) | O `UPDATE` substitui a própria linha, então ela não conflita consigo | — |
 | Horário de funcionamento, data passada, pet inativo (US-06) | — | Validação antes do `INSERT`/`UPDATE` → **400** (fuso America/Sao_Paulo) |
 | Fluxo de status da consulta (US-06) | `CHECK` dos valores possíveis | Só permite `agendada → realizada` (se o horário já chegou) ou `agendada → cancelada`; demais → **409** |
@@ -281,7 +292,7 @@ CREATE INDEX idx_consultas_vet_data  ON consultas (veterinario_id, data_hora);
 
 | Método | Rota | Descrição | Sucesso | Erros | Lambda | Requisito |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/tutores?busca=&pagina=&limite=` | Lista em ordem alfabética, com CPF mascarado. `busca` aceita trecho do nome ou CPF | 200 | 400 | vetcare-api | RF-01, RF-08, RNF-06 |
+| `GET` | `/tutores?busca=&pagina=&limite=` | Lista em ordem alfabética, com CPF mascarado. `busca` aceita trecho do nome (sem diferenciar maiúsculas e acentos, via `unaccent`) ou CPF | 200 | 400 | vetcare-api | RF-01, RF-08, RNF-06 |
 | `GET` | `/tutores/{id}` | Detalhe do tutor, com CPF completo | 200 | 404 | vetcare-api | RF-01 |
 | `POST` | `/tutores` | Cadastra um tutor | 201 | 400, 409 | vetcare-api | RF-01 |
 | `PUT` | `/tutores/{id}` | Edita um tutor | 200 | 400, 404, 409 | vetcare-api | RF-01 |
@@ -339,6 +350,7 @@ ORDER BY v.nome, total_consultas DESC;
 * **Erro:** `{ "erro": "mensagem legível" }`, com o código HTTP indicado nas tabelas.
 * **Paginação:** parâmetros `pagina` (padrão 1) e `limite` (padrão 20, máximo 100). Resposta: `{ "dados": [...], "pagina": 1, "limite": 20, "total": 57 }`.
 * **CPF:** recebido com ou sem pontuação, gravado só com dígitos e devolvido mascarado (`***.456.789-**`) nas listagens.
+* **Logs:** CPF e telefone nunca são registrados no CloudWatch; os logs identificam registros apenas pelo `id` (RNF-06).
 * **Fotos:** o banco guarda apenas a **chave** do arquivo no S3. Nas respostas, a API gera URLs de leitura pré-assinadas válidas por 1 hora.
 * **CORS:** configurado no API Gateway (origem do site, métodos `GET, POST, PUT, PATCH, DELETE`, cabeçalho `Content-Type`) e no bucket `vetcare-fotos` (método `POST` a partir da origem do site).
 
@@ -450,5 +462,5 @@ Todas as decisões abaixo consideram estas restrições do ambiente:
 * **Consequências:**
   * ➕ A regra vale para qualquer forma de acesso ao banco, não só para a API.
   * ➕ O intervalo `[)` resolve o caso de consultas que apenas se encostam (10:00–10:30 e 10:30–11:00).
-  * ➖ Depende da extensão `btree_gist` (disponível no RDS PostgreSQL), criada pelo script `01_schema.sql`.
+  * ➖ Depende da extensão `btree_gist` (disponível no RDS PostgreSQL), criada pelo script `01_schema.sql`. Se a extensão não puder ser criada no Learner Lab, a alternativa é a opção A com bloqueio da linha do veterinário (`SELECT ... FOR UPDATE`) dentro da transação.
   * ➖ A duração fixa de 30 minutos fica no banco; mudar a duração exige alterar a restrição.
