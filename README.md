@@ -132,6 +132,6 @@ Se o orçamento do laboratório for ultrapassado, a conta é desativada e **todo
 | Nome | RA |
 | :--- | :--- |
 | Ana Beatriz Pereira de Oliveira | 10444937 |
-| *(nome do integrante)* | *(RA)* |
-| *(nome do integrante)* | *(RA)* |
-| *(nome do integrante)* | *(RA)* |
+| Gustavo Agustini Pan | 10426600 |
+| Isaac Carone | 10723323 |
+| Nicholas Lopes | 10723200 |
